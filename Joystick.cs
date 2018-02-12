@@ -13,14 +13,14 @@ namespace Xamarin.Android.Things.SenseHAT
 	/// </remarks>
 	public class Joystick : IDisposable
 	{
-		const int ADDRESS = 0x46;
-		const int DELAY_MS = 16;
+		const byte ADDRESS = 0x46;
+		const byte DELAY_MS = 16;
 		PeripheralManagerService _peripheralManagerService;
 		I2cDevice _rawDevice;
 		Handler _handler;
 		Action _listenerAction;
 
-		public event EventHandler<JoystickClickedEventArgs> JoystickClickedEvent;
+		public event EventHandler<JoystickClickedEventArgs> JoystickClicked;
 
 		public Joystick()
 		{
@@ -38,32 +38,24 @@ namespace Xamarin.Android.Things.SenseHAT
 
 		void InitHandler()
 		{
-			_listenerAction = CheckButtonStates;
+			_listenerAction = CheckButtonState;
 			_handler = new Handler(Looper.MyLooper());
 			_handler.Post(_listenerAction);
 		}
 
-		void CheckButtonStates()
+		public void CheckButtonState()
 		{
 			if (_rawDevice == null || _rawDevice.Handle == IntPtr.Zero || _handler == null)
 			{
 				return;
 			}
 
-			var buffer = new byte[1];
-			_rawDevice.ReadRegBuffer(0xf2, buffer, 1);
-			var state = buffer[0];
-
-			var leftKeyPressed = (state & 0x10) > 0;
-			var upKeyPressed = (state & 0x04) > 0;
-			var rightKeyPressed = (state & 0x02) > 0;
-			var downKeyPressed = (state & 0x01) > 0;
-			var enterKeyPressed = (state & 0x08) > 0;
+			ReadSensor(out var leftKeyPressed, out var upKeyPressed, out var rightKeyPressed, out var downKeyPressed, out var enterKeyPressed);
 
 			var changed = LeftKeyPressed != leftKeyPressed || UpKeyPressed != upKeyPressed || RightKeyPressed != rightKeyPressed || DownKeyPressed != downKeyPressed || EnterKeyPressed != enterKeyPressed;
 			if (changed)
 			{
-				JoystickClickedEvent?.Invoke(this, new JoystickClickedEventArgs(leftKeyPressed, upKeyPressed, rightKeyPressed, downKeyPressed, enterKeyPressed));
+				JoystickClicked?.Invoke(this, new JoystickClickedEventArgs(leftKeyPressed, upKeyPressed, rightKeyPressed, downKeyPressed, enterKeyPressed));
 			}
 
 			LeftKeyPressed = leftKeyPressed;
@@ -73,6 +65,19 @@ namespace Xamarin.Android.Things.SenseHAT
 			EnterKeyPressed = enterKeyPressed;
 
 			_handler.PostDelayed(_listenerAction, DELAY_MS);
+		}
+
+		void ReadSensor(out bool leftKeyPressed, out bool upKeyPressed, out bool rightKeyPressed, out bool downKeyPressed, out bool enterKeyPressed)
+		{
+			var buffer = new byte[1];
+			_rawDevice.ReadRegBuffer(0xf2, buffer, 1);
+			var state = buffer[0];
+
+			leftKeyPressed = (state & 0x10) > 0;
+			upKeyPressed = (state & 0x04) > 0;
+			rightKeyPressed = (state & 0x02) > 0;
+			downKeyPressed = (state & 0x01) > 0;
+			enterKeyPressed = (state & 0x08) > 0;
 		}
 
 		protected virtual void Dispose(bool disposing)

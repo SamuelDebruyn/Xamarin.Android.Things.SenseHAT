@@ -10,7 +10,7 @@ namespace Xamarin.Android.Things.SenseHAT
 	public class LedMatrix : IDisposable
 	{
 		const int SIZE = 8;
-		const int ADDRESS = 0x46;
+		const byte ADDRESS = 0x46;
 		const int BUFFER_SIZE = SIZE * SIZE * 3 + 1;
 		const float TEST_TEXT_SIZE = 48f;
 
