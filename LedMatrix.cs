@@ -4,23 +4,24 @@ using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.Things.Pio;
 using System.Linq;
+using System.Threading;
+using Java.IO;
 
 namespace Xamarin.Android.Things.SenseHAT
 {
 	public class LedMatrix : IDisposable
 	{
 		const int SIZE = 8;
+		const int MAX_RETRIES = 5;
 		const byte ADDRESS = 0x46;
 		const int BUFFER_SIZE = SIZE * SIZE * 3 + 1;
 		const float TEST_TEXT_SIZE = 48f;
 
 		PeripheralManagerService _peripheralManagerService;
-		I2cDevice _rawMatrix;
 
 		public LedMatrix()
 		{
 			_peripheralManagerService = new PeripheralManagerService();
-			_rawMatrix = _peripheralManagerService.OpenI2cDevice(_peripheralManagerService.I2cBusList.First(), ADDRESS);
 		}
 
 		public void Draw(Bitmap bitmap)
@@ -40,7 +41,7 @@ namespace Xamarin.Android.Things.SenseHAT
 				}
 			}
 
-			_rawMatrix.Write(bytes, bytes.Length);
+			WriteToMatrix(bytes);
 		}
 
 		public void Draw(Drawable drawable)
@@ -135,7 +136,32 @@ namespace Xamarin.Android.Things.SenseHAT
 				}
 			}
 
-			_rawMatrix.Write(bytes, bytes.Length);
+			WriteToMatrix(bytes);
+		}
+
+		void WriteToMatrix(byte[] bytes, int retry = 0)
+		{
+			try
+			{
+				using (var rawDevice = _peripheralManagerService.OpenI2cDevice(_peripheralManagerService.I2cBusList.First(), ADDRESS))
+				{
+					rawDevice.Write(bytes, bytes.Length);
+					rawDevice.Close();
+				}
+				
+			}
+			catch (IOException)
+			{
+				if(retry < MAX_RETRIES)
+				{
+					Thread.Sleep(8);
+					WriteToMatrix(bytes, retry++);
+				}
+				else
+				{
+					throw;
+				}
+			}
 		}
 
 		static void DrawPixel(byte[] buffer, int x, int y, int pixel)
@@ -149,8 +175,6 @@ namespace Xamarin.Android.Things.SenseHAT
 			var shiftedRed = (byte)(red >> 3);
 			var shiftedGreen = (byte)(green >> 3);
 			var shiftedBlue = (byte)(blue >> 3);
-			
-			Debug.WriteLine($"Drawing ({x+1}, {y+1}) color ({red}, {green}, {blue}, {alpha})");
 
 			buffer[1 + x + SIZE * 0 + 3 * SIZE * y] = shiftedRed;
 			buffer[1 + x + SIZE * 1 + 3 * SIZE * y] = shiftedGreen;
@@ -159,10 +183,6 @@ namespace Xamarin.Android.Things.SenseHAT
 
 		protected virtual void Dispose(bool disposing)
 		{
-			_rawMatrix?.Close();
-			_rawMatrix?.Dispose();
-			_rawMatrix = null;
-
 			if (disposing)
 			{
 				_peripheralManagerService?.Dispose();
