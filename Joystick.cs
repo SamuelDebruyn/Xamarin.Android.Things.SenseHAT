@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Android.Things.Pio;
@@ -15,16 +16,19 @@ namespace Xamarin.Android.Things.SenseHAT
 	/// </remarks>
 	public class Joystick : IDisposable
 	{
+		readonly Keycode[] _keyCodes;
 		const byte ADDRESS = 0x46;
 		const byte DELAY_MS = 32;
+		
 		PeripheralManagerService _peripheralManagerService;
 		Handler _handler;
 		Action _listenerAction;
 
 		public event EventHandler<JoystickClickedEventArgs> JoystickClicked;
 
-		public Joystick()
+		public Joystick(Keycode[] keyCodes)
 		{
+			_keyCodes = keyCodes;
 			_peripheralManagerService = new PeripheralManagerService();
 
 			InitHandler();
@@ -53,16 +57,19 @@ namespace Xamarin.Android.Things.SenseHAT
 
 			var success = ReadSensor(out var leftKeyPressed, out var upKeyPressed, out var rightKeyPressed, out var downKeyPressed, out var enterKeyPressed);
 
-			if(!success)
+			if (!success)
 			{
 				_handler.PostDelayed(_listenerAction, DELAY_MS);
 				return;
 			}
 
-			var changed = LeftKeyPressed != leftKeyPressed || UpKeyPressed != upKeyPressed || RightKeyPressed != rightKeyPressed || DownKeyPressed != downKeyPressed || EnterKeyPressed != enterKeyPressed;
+			var changed = LeftKeyPressed != leftKeyPressed || UpKeyPressed != upKeyPressed || RightKeyPressed != rightKeyPressed || DownKeyPressed != downKeyPressed ||
+			              EnterKeyPressed != enterKeyPressed;
 			if (changed)
 			{
-				JoystickClicked?.Invoke(this, new JoystickClickedEventArgs(leftKeyPressed, upKeyPressed, rightKeyPressed, downKeyPressed, enterKeyPressed));
+				JoystickClicked?.Invoke(this,
+					new JoystickClickedEventArgs(leftKeyPressed, upKeyPressed, rightKeyPressed, downKeyPressed, enterKeyPressed, LeftKeyPressed, RightKeyPressed, UpKeyPressed,
+						DownKeyPressed, EnterKeyPressed, _keyCodes));
 			}
 
 			LeftKeyPressed = leftKeyPressed;
@@ -81,7 +88,7 @@ namespace Xamarin.Android.Things.SenseHAT
 			rightKeyPressed = false;
 			downKeyPressed = false;
 			enterKeyPressed = false;
-			
+
 			var buffer = new byte[1];
 
 			try
@@ -136,19 +143,64 @@ namespace Xamarin.Android.Things.SenseHAT
 
 		public class JoystickClickedEventArgs : EventArgs
 		{
+			readonly Keycode[] _keycodes;
 			public bool LeftKeyPressed { get; }
 			public bool RightKeyPressed { get; }
 			public bool UpKeyPressed { get; }
 			public bool DownKeyPressed { get; }
 			public bool EnterKeyPressed { get; }
 
-			public JoystickClickedEventArgs(bool leftKeyPressed, bool upKeyPressed, bool rightKeyPressed, bool downKeyPressed, bool enterKeyPressed)
+			public bool PreviousLeftKeyPressed { get; }
+			public bool PreviousRightKeyPressed { get; }
+			public bool PreviousUpKeyPressed { get; }
+			public bool PreviousDownKeyPressed { get; }
+			public bool PreviousEnterKeyPressed { get; }
+
+			public KeyEvent[] KeyEvents { get; }
+
+			public JoystickClickedEventArgs(bool leftKeyPressed, bool upKeyPressed, bool rightKeyPressed, bool downKeyPressed, bool enterKeyPressed,
+				bool previousLeftKeyPressed, bool previousRightKeyPressed, bool previousUpKeyPressed, bool previousDownKeyPressed, bool previousEnterKeyPressed, Keycode[] keycodes)
 			{
+				_keycodes = keycodes;
 				LeftKeyPressed = leftKeyPressed;
 				UpKeyPressed = upKeyPressed;
 				RightKeyPressed = rightKeyPressed;
 				DownKeyPressed = downKeyPressed;
 				EnterKeyPressed = enterKeyPressed;
+				PreviousLeftKeyPressed = previousLeftKeyPressed;
+				PreviousRightKeyPressed = previousRightKeyPressed;
+				PreviousUpKeyPressed = previousUpKeyPressed;
+				PreviousDownKeyPressed = previousDownKeyPressed;
+				PreviousEnterKeyPressed = previousEnterKeyPressed;
+
+				var events = new List<KeyEvent>();
+
+				if (leftKeyPressed != previousLeftKeyPressed)
+				{
+					events.Add(new KeyEvent(leftKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[0]));
+				}
+				
+				if (upKeyPressed != previousUpKeyPressed)
+				{
+					events.Add(new KeyEvent(upKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[1]));
+				}
+
+				if (rightKeyPressed != previousRightKeyPressed)
+				{
+					events.Add(new KeyEvent(rightKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[2]));
+				}
+				
+				if (downKeyPressed != previousDownKeyPressed)
+				{
+					events.Add(new KeyEvent(downKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[3]));
+				}
+
+				if (enterKeyPressed != previousEnterKeyPressed)
+				{
+					events.Add(new KeyEvent(enterKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[4]));
+				}
+
+				KeyEvents = events.ToArray();
 			}
 
 			public override string ToString()
