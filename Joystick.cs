@@ -1,30 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using Android.Things.Pio;
-using Android.Things.UserDriver;
-using Android.Views;
-using Java.Lang;
 using Android.OS;
+using Android.Things.Pio;
+using Android.Views;
 using Java.IO;
 
 namespace Xamarin.Android.Things.SenseHAT
 {
 	/// <remarks>
-	/// SKRHABE010
+	///     SKRHABE010
 	/// </remarks>
 	public class Joystick : IDisposable
 	{
-		readonly Keycode[] _keyCodes;
 		const byte ADDRESS = 0x46;
 		const byte DELAY_MS = 32;
-		
-		PeripheralManagerService _peripheralManagerService;
+		readonly Keycode[] _keyCodes;
 		Handler _handler;
 		Action _listenerAction;
 
-		public event EventHandler<JoystickClickedEventArgs> JoystickClicked;
+		PeripheralManagerService _peripheralManagerService;
 
 		public Joystick(Keycode[] keyCodes)
 		{
@@ -39,6 +34,14 @@ namespace Xamarin.Android.Things.SenseHAT
 		public bool UpKeyPressed { get; private set; }
 		public bool DownKeyPressed { get; private set; }
 		public bool EnterKeyPressed { get; private set; }
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		public event EventHandler<JoystickClickedEventArgs> JoystickClicked;
 
 		void InitHandler()
 		{
@@ -130,12 +133,6 @@ namespace Xamarin.Android.Things.SenseHAT
 			}
 		}
 
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 		~Joystick()
 		{
 			Dispose(false);
@@ -144,34 +141,12 @@ namespace Xamarin.Android.Things.SenseHAT
 		public class JoystickClickedEventArgs : EventArgs
 		{
 			readonly Keycode[] _keycodes;
-			public bool LeftKeyPressed { get; }
-			public bool RightKeyPressed { get; }
-			public bool UpKeyPressed { get; }
-			public bool DownKeyPressed { get; }
-			public bool EnterKeyPressed { get; }
-
-			public bool PreviousLeftKeyPressed { get; }
-			public bool PreviousRightKeyPressed { get; }
-			public bool PreviousUpKeyPressed { get; }
-			public bool PreviousDownKeyPressed { get; }
-			public bool PreviousEnterKeyPressed { get; }
-
-			public KeyEvent[] KeyEvents { get; }
 
 			public JoystickClickedEventArgs(bool leftKeyPressed, bool upKeyPressed, bool rightKeyPressed, bool downKeyPressed, bool enterKeyPressed,
-				bool previousLeftKeyPressed, bool previousRightKeyPressed, bool previousUpKeyPressed, bool previousDownKeyPressed, bool previousEnterKeyPressed, Keycode[] keycodes)
+				bool previousLeftKeyPressed, bool previousRightKeyPressed, bool previousUpKeyPressed, bool previousDownKeyPressed, bool previousEnterKeyPressed,
+				Keycode[] keycodes)
 			{
 				_keycodes = keycodes;
-				LeftKeyPressed = leftKeyPressed;
-				UpKeyPressed = upKeyPressed;
-				RightKeyPressed = rightKeyPressed;
-				DownKeyPressed = downKeyPressed;
-				EnterKeyPressed = enterKeyPressed;
-				PreviousLeftKeyPressed = previousLeftKeyPressed;
-				PreviousRightKeyPressed = previousRightKeyPressed;
-				PreviousUpKeyPressed = previousUpKeyPressed;
-				PreviousDownKeyPressed = previousDownKeyPressed;
-				PreviousEnterKeyPressed = previousEnterKeyPressed;
 
 				var events = new List<KeyEvent>();
 
@@ -179,7 +154,7 @@ namespace Xamarin.Android.Things.SenseHAT
 				{
 					events.Add(new KeyEvent(leftKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[0]));
 				}
-				
+
 				if (upKeyPressed != previousUpKeyPressed)
 				{
 					events.Add(new KeyEvent(upKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[1]));
@@ -189,7 +164,7 @@ namespace Xamarin.Android.Things.SenseHAT
 				{
 					events.Add(new KeyEvent(rightKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[2]));
 				}
-				
+
 				if (downKeyPressed != previousDownKeyPressed)
 				{
 					events.Add(new KeyEvent(downKeyPressed ? KeyEventActions.Up : KeyEventActions.Down, _keycodes[3]));
@@ -203,10 +178,7 @@ namespace Xamarin.Android.Things.SenseHAT
 				KeyEvents = events.ToArray();
 			}
 
-			public override string ToString()
-			{
-				return $"LEFT: {LeftKeyPressed}, UP: {UpKeyPressed}, RIGHT: {RightKeyPressed}, DOWN: {DownKeyPressed}, ENTER: {EnterKeyPressed}";
-			}
+			public KeyEvent[] KeyEvents { get; }
 		}
 	}
 }

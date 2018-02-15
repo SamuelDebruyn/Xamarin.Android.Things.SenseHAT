@@ -39,7 +39,7 @@ namespace Xamarin.Android.Things.SenseHAT
 		const byte H1_T0_OUT = 0x3a;
 		const byte T0_OUT = 0x3c;
 		const byte T1_OUT = 0x3e;
-		
+
 		Handler _handler;
 		Func<short, double> _humidityConversion;
 		Action _listenerAction;
@@ -105,7 +105,7 @@ namespace Xamarin.Android.Things.SenseHAT
 				{
 					TemperatureChanged?.Invoke(this, new TemperatureChangedEventArgs(temperature.Value));
 				}
-				
+
 				Temperature = temperature;
 			}
 

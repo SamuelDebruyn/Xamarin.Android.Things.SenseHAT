@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Linq;
+using System.Threading;
 using Android.Graphics;
 using Android.Graphics.Drawables;
 using Android.Things.Pio;
-using System.Linq;
-using System.Threading;
 using Java.IO;
 
 namespace Xamarin.Android.Things.SenseHAT
@@ -22,6 +21,12 @@ namespace Xamarin.Android.Things.SenseHAT
 		public LedMatrix()
 		{
 			_peripheralManagerService = new PeripheralManagerService();
+		}
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
 		}
 
 		public void Draw(Bitmap bitmap)
@@ -86,17 +91,17 @@ namespace Xamarin.Android.Things.SenseHAT
 			var bottom = SIZE;
 			var bounds = SetTextSize(paint, text);
 
-			if(bounds.Left < 0)
+			if (bounds.Left < 0)
 			{
 				left = bounds.Left;
 			}
 
-			if(bounds.Left > 0)
+			if (bounds.Left > 0)
 			{
 				left = -bounds.Left;
 			}
 
-			if(bounds.Bottom > 0)
+			if (bounds.Bottom > 0)
 			{
 				bottom = SIZE - bounds.Bottom;
 			}
@@ -109,15 +114,17 @@ namespace Xamarin.Android.Things.SenseHAT
 					{
 						canvas.DrawColor(backgroundColor.Value);
 					}
+
 					canvas.DrawText(text, left, bottom, paint);
 				}
+
 				Draw(bitmap);
 			}
 		}
 
 		public void Draw(char character, Color color, Color? backgroundColor = null)
 		{
-			using (var paint = new Paint { Color = color })
+			using (var paint = new Paint {Color = color})
 			{
 				Draw(character, paint, backgroundColor);
 			}
@@ -148,11 +155,10 @@ namespace Xamarin.Android.Things.SenseHAT
 					rawDevice.Write(bytes, bytes.Length);
 					rawDevice.Close();
 				}
-				
 			}
 			catch (IOException)
 			{
-				if(retry < MAX_RETRIES)
+				if (retry < MAX_RETRIES)
 				{
 					Thread.Sleep(8);
 					WriteToMatrix(bytes, retry++);
@@ -168,13 +174,13 @@ namespace Xamarin.Android.Things.SenseHAT
 		{
 			var alpha = Color.GetAlphaComponent(pixel) / 255f;
 
-			var red = (int)(Color.GetRedComponent(pixel) * alpha);
-			var green = (int)(Color.GetGreenComponent(pixel) * alpha);
-			var blue = (int)(Color.GetBlueComponent(pixel) * alpha);
+			var red = (int) (Color.GetRedComponent(pixel) * alpha);
+			var green = (int) (Color.GetGreenComponent(pixel) * alpha);
+			var blue = (int) (Color.GetBlueComponent(pixel) * alpha);
 
-			var shiftedRed = (byte)(red >> 3);
-			var shiftedGreen = (byte)(green >> 3);
-			var shiftedBlue = (byte)(blue >> 3);
+			var shiftedRed = (byte) (red >> 3);
+			var shiftedGreen = (byte) (green >> 3);
+			var shiftedBlue = (byte) (blue >> 3);
 
 			buffer[1 + x + SIZE * 0 + 3 * SIZE * y] = shiftedRed;
 			buffer[1 + x + SIZE * 1 + 3 * SIZE * y] = shiftedGreen;
@@ -188,12 +194,6 @@ namespace Xamarin.Android.Things.SenseHAT
 				_peripheralManagerService?.Dispose();
 				_peripheralManagerService = null;
 			}
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
 		}
 
 		~LedMatrix()

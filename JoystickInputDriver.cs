@@ -16,9 +16,16 @@ namespace Xamarin.Android.Things.SenseHAT
 			_keyCodes = keyCodes;
 			_joystick = new Joystick(keyCodes);
 		}
-		
-		public JoystickInputDriver():this(new []{Keycode.DpadLeft, Keycode.DpadUp, Keycode.DpadRight, Keycode.DpadDown, Keycode.DpadCenter})
-		{ }
+
+		public JoystickInputDriver() : this(new[] {Keycode.DpadLeft, Keycode.DpadUp, Keycode.DpadRight, Keycode.DpadDown, Keycode.DpadCenter})
+		{
+		}
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
 		public void Register()
 		{
@@ -67,12 +74,6 @@ namespace Xamarin.Android.Things.SenseHAT
 				_inputDriver = null;
 				_joystick = null;
 			}
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
 		}
 
 		~JoystickInputDriver()
